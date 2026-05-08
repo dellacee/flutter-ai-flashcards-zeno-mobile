@@ -1,0 +1,84 @@
+# ─── Flutter ───────────────────────────────────────────
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/.pub-cache/
+**/.pub/
+**/build/
+**/pubspec.lock
+**/*.iml
+**/.idea/
+**/.vscode/
+**/doc/api/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# ─── Generated code ────────────────────────────────────
+**/*.g.dart
+**/*.freezed.dart
+**/*.gen.dart
+**/*.config.dart
+**/*.mocks.dart
+
+# ─── Firebase secrets (KHÔNG commit) ───────────────────
+**/firebase_options.dart
+**/google-services.json
+**/GoogleService-Info.plist
+.firebaserc
+.firebase/
+**/serviceAccountKey.json
+**/*-service-account.json
+
+# ─── Native build artifacts ────────────────────────────
+android/app/debug
+android/app/profile
+android/app/release
+android/.gradle/
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/**/GeneratedPluginRegistrant.java
+android/key.properties
+**/*.jks
+**/*.keystore
+
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Flutter/app.flx
+ios/Flutter/app.zip
+ios/Flutter/flutter_assets/
+ios/Flutter/flutter_export_environment.sh
+ios/ServiceDefinitions.json
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Pods/
+ios/.symlinks/
+
+# ─── Env / secrets ─────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+
+# ─── Backend (Plan 2) ──────────────────────────────────
+backend/__pycache__/
+backend/.venv/
+backend/*.pyc
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
+
+# ─── OS ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ─── Editor ────────────────────────────────────────────
+*.swp
+*.swo
+*~
+.fvm/

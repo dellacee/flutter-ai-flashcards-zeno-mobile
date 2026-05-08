@@ -1,0 +1,45 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── User-scoped data ─────────────────────────────────
+    // Mọi document dưới users/{uid}/** chỉ owner đọc/ghi.
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /decks/{deckId} {
+        allow read, write: if isOwner(uid) && isValidDeck();
+
+        match /cards/{cardId} {
+          allow read, write: if isOwner(uid);
+        }
+      }
+
+      match /documents/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /chats/{chatId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // ─── Default deny ─────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ─── Helpers ──────────────────────────────────────────
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function isValidDeck() {
+      let d = request.resource.data;
+      return d.title is string
+          && d.title.size() >= 1
+          && d.title.size() <= 200;
+    }
+  }
+}
