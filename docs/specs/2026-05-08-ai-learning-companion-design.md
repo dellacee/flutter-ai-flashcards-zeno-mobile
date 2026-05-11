@@ -67,12 +67,12 @@ Tên working: `Zeno` (sẽ chốt sau khi check trademark + .app domain).
 ## 5. Scope — V1 MVP (5–6 tuần)
 
 ### In scope
-- **Auth**: Google Sign-In, Apple Sign-In, Email magic link (Firebase Auth)
-- **Ingest**:
-  - Upload PDF (≤30MB, ≤200 pages)
-  - Paste URL (article extractor)
-  - Paste raw text (paste box)
-  - Snap a page (camera → ML Kit OCR on-device)
+- **Auth**: Google Sign-In + Email/Password (Firebase Auth)
+  - ~~Email magic link~~ deprecated — Firebase Dynamic Links shutting down 2025/2026
+  - Apple Sign-In: defer V1.2 (cần Apple Dev account + Mac)
+- **Ingest** *(deferred to V1.1 — bundled with backend & AI pipeline)*:
+  - ~~Upload PDF (≤30MB, ≤200 pages)~~ V1.0 chỉ tạo card thủ công; PDF/URL/image ingest move sang V1.1 khi build backend FastAPI + Cloud Storage direct
+  - Lý do: Firebase Storage giờ require Blaze plan (paid) → defer cho tới khi có backend pipeline thật sự cần
 - **AI processing**:
   - Auto-generate flashcards: 3 types — Q/A, cloze deletion, MCQ
   - Generate summary (TL;DR ~150 từ + bullet key points)
@@ -113,7 +113,7 @@ Tên working: `Zeno` (sẽ chốt sau khi check trademark + .app domain).
 - Real-time collaboration → never (out of vision)
 
 ### Definition of done — V1
-- [ ] User có thể tạo deck từ PDF, review, chat — end-to-end
+- [ ] User có thể tạo deck **thủ công** (V1.0) / từ PDF (V1.1+), review, chat — end-to-end
 - [ ] App chạy được offline (review only)
 - [ ] Daily notification gửi đúng giờ
 - [ ] FSRS review schedule đúng (test ≥10 cards qua 7 ngày)
