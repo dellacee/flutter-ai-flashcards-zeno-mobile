@@ -21,14 +21,16 @@
 **/*.config.dart
 **/*.mocks.dart
 
-# ─── Firebase secrets (KHÔNG commit) ───────────────────
+# ─── Firebase secrets (KHÔNG commit trên public repo) ──
+# Re-run `flutterfire configure --project=<id>` to regenerate.
 **/firebase_options.dart
 **/google-services.json
 **/GoogleService-Info.plist
-.firebaserc
 .firebase/
 **/serviceAccountKey.json
 **/*-service-account.json
+
+# .firebaserc commit được — chỉ chứa project ID alias, không có secret.
 
 # ─── Native build artifacts ────────────────────────────
 android/app/debug
