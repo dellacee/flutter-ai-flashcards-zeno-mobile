@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:zeno/core/error/app_failure.dart';
@@ -9,11 +10,14 @@ class FirebaseAuthRepository implements AuthRepository {
   FirebaseAuthRepository({
     required fb.FirebaseAuth firebaseAuth,
     required GoogleSignIn googleSignIn,
+    required FirebaseFirestore firestore,
   })  : _auth = firebaseAuth,
-        _googleSignIn = googleSignIn;
+        _googleSignIn = googleSignIn,
+        _firestore = firestore;
 
   final fb.FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
+  final FirebaseFirestore _firestore;
   final _log = appLog('auth');
 
   @override
@@ -50,7 +54,9 @@ class FirebaseAuthRepository implements AuthRepository {
         accessToken: googleAuth.accessToken,
       );
       final result = await _auth.signInWithCredential(credential);
-      return _mapUser(result.user)!;
+      final user = _mapUser(result.user)!;
+      await _bootstrapUserDoc(result.user!);
+      return user;
     } on AppFailure {
       rethrow;
     } on fb.FirebaseAuthException catch (e) {
@@ -72,7 +78,9 @@ class FirebaseAuthRepository implements AuthRepository {
         email: email,
         password: password,
       );
-      return _mapUser(result.user)!;
+      final user = _mapUser(result.user)!;
+      await _bootstrapUserDoc(result.user!);
+      return user;
     } on fb.FirebaseAuthException catch (e) {
       _log.warning('signInWithEmail FirebaseAuthException: ${e.code}', e);
       throw AppFailure.auth(code: e.code, message: e.message);
@@ -92,7 +100,9 @@ class FirebaseAuthRepository implements AuthRepository {
         email: email,
         password: password,
       );
-      return _mapUser(result.user)!;
+      final user = _mapUser(result.user)!;
+      await _bootstrapUserDoc(result.user!);
+      return user;
     } on fb.FirebaseAuthException catch (e) {
       _log.warning('registerWithEmail FirebaseAuthException: ${e.code}', e);
       throw AppFailure.auth(code: e.code, message: e.message);
@@ -144,6 +154,36 @@ class FirebaseAuthRepository implements AuthRepository {
     } on fb.FirebaseAuthException catch (e) {
       _log.warning('deleteAccount FirebaseAuthException: ${e.code}', e);
       throw AppFailure.auth(code: e.code, message: e.message);
+    }
+  }
+
+  Future<void> _bootstrapUserDoc(fb.User user) async {
+    try {
+      final doc = _firestore.collection('users').doc(user.uid);
+      final snap = await doc.get();
+      if (!snap.exists) {
+        await doc.set({
+          'displayName': user.displayName,
+          'email': user.email,
+          'photoURL': user.photoURL,
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastSignInAt': FieldValue.serverTimestamp(),
+          'settings': {
+            'reviewTime': '07:00',
+            'dailyNewCardLimit': 20,
+            'theme': 'system',
+            'locale': 'vi',
+          },
+          'stats': {
+            'streak': 0,
+            'totalReviews': 0,
+          },
+        });
+      } else {
+        await doc.update({'lastSignInAt': FieldValue.serverTimestamp()});
+      }
+    } catch (e, st) {
+      _log.warning('bootstrap user doc failed (non-fatal)', e, st);
     }
   }
 }
