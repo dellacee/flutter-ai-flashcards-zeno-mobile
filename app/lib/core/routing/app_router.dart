@@ -5,6 +5,8 @@ import 'package:zeno/core/widgets/main_scaffold.dart';
 import 'package:zeno/features/auth/domain/auth_user.dart';
 import 'package:zeno/features/auth/presentation/providers/auth_providers.dart';
 import 'package:zeno/features/auth/presentation/sign_in_screen.dart';
+import 'package:zeno/features/cards/presentation/add_card_screen.dart';
+import 'package:zeno/features/cards/presentation/edit_card_screen.dart';
 import 'package:zeno/features/home/presentation/home_screen.dart';
 import 'package:zeno/features/library/presentation/create_deck_screen.dart';
 import 'package:zeno/features/library/presentation/deck_detail_screen.dart';
@@ -59,6 +61,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/decks/:id/edit',
         builder: (context, state) =>
             EditDeckScreen(deckId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/decks/:id/cards/new',
+        builder: (context, state) =>
+            AddCardScreen(deckId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/decks/:id/cards/:cardId/edit',
+        builder: (context, state) => EditCardScreen(
+          deckId: state.pathParameters['id']!,
+          cardId: state.pathParameters['cardId']!,
+        ),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

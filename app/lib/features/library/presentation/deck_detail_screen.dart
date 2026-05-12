@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zeno/core/widgets/empty_state.dart';
+import 'package:zeno/core/widgets/loading_skeleton.dart';
+import 'package:zeno/features/cards/presentation/providers/card_providers.dart';
+import 'package:zeno/features/cards/presentation/widgets/card_tile.dart';
 import 'package:zeno/features/library/domain/deck.dart';
 import 'package:zeno/features/library/presentation/providers/deck_providers.dart';
 
@@ -110,16 +113,18 @@ enum _DeckAction { edit, delete }
 // Body — renders when data is loaded
 // ---------------------------------------------------------------------------
 
-class _DeckDetailBody extends StatelessWidget {
+class _DeckDetailBody extends ConsumerWidget {
   const _DeckDetailBody({required this.deck});
 
   final Deck deck;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     final colorScheme = theme.colorScheme;
+
+    final cardsAsync = ref.watch(cardListProvider(deck.id));
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -175,13 +180,79 @@ class _DeckDetailBody extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Sources section
-          Text('Sources', style: textTheme.titleSmall),
+          // Cards section header
+          Row(
+            children: [
+              Expanded(
+                child: Text('Cards', style: textTheme.titleSmall),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: () =>
+                    context.push('/decks/${deck.id}/cards/new'),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Thêm card'),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
-          Text(
-            'Chưa có nguồn nào — V1.1 sẽ bổ sung upload PDF/URL.',
-            style: textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+
+          // Cards list driven by cardListProvider
+          cardsAsync.when(
+            data: (cards) {
+              if (cards.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    "Chưa có card nào. Bấm 'Thêm card' để bắt đầu.",
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                );
+              }
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: cards.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final card = cards[index];
+                  return CardTile(
+                    card: card,
+                    onTap: () => context.push(
+                      '/decks/${deck.id}/cards/${card.id}/edit',
+                    ),
+                    onDelete: () async {
+                      await ref
+                          .read(cardRepositoryProvider)
+                          .deleteCard(
+                            deckId: deck.id,
+                            cardId: card.id,
+                          );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Đã xóa card')),
+                        );
+                      }
+                    },
+                  );
+                },
+              );
+            },
+            loading: () => const Column(
+              children: [
+                LoadingSkeleton(height: 72),
+                SizedBox(height: 8),
+                LoadingSkeleton(height: 72),
+                SizedBox(height: 8),
+                LoadingSkeleton(height: 72),
+              ],
+            ),
+            error: (e, _) => Text(
+              'Lỗi tải cards: $e',
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.error,
+              ),
             ),
           ),
         ],
