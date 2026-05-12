@@ -6,20 +6,30 @@ import 'package:zeno/app.dart';
 import 'package:zeno/features/auth/domain/auth_repository.dart';
 import 'package:zeno/features/auth/domain/auth_user.dart';
 import 'package:zeno/features/auth/presentation/providers/auth_providers.dart';
+import 'package:zeno/features/library/domain/deck.dart';
+import 'package:zeno/features/library/domain/deck_repository.dart';
+import 'package:zeno/features/library/presentation/providers/deck_providers.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
 
-/// A [ZenoApp] wrapper that stubs the auth layer so the router sees a
-/// signed-in user and routes directly to the main shell instead of /sign-in.
+class _MockDeckRepository extends Mock implements DeckRepository {}
+
+/// A [ZenoApp] wrapper that stubs the auth and deck layers so the router
+/// sees a signed-in user with an empty deck list (no Firebase needed in tests).
 Widget _authedApp() {
-  final repo = _MockAuthRepository();
+  final authRepo = _MockAuthRepository();
   const user = AuthUser(uid: 'test', email: 'test@zeno.app');
-  when(repo.authStateChanges).thenAnswer((_) => Stream.value(user));
-  when(() => repo.currentUser).thenReturn(user);
+  when(authRepo.authStateChanges).thenAnswer((_) => Stream.value(user));
+  when(() => authRepo.currentUser).thenReturn(user);
+
+  final deckRepo = _MockDeckRepository();
+  when(deckRepo.watchDecks)
+      .thenAnswer((_) => Stream.value(<Deck>[]));
 
   return ProviderScope(
     overrides: [
-      authRepositoryProvider.overrideWithValue(repo),
+      authRepositoryProvider.overrideWithValue(authRepo),
+      deckRepositoryProvider.overrideWithValue(deckRepo),
     ],
     child: const ZenoApp(),
   );
