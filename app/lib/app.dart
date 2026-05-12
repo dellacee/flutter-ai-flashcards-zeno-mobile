@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zeno/core/theme/app_theme.dart';
 
 /// Root widget of the Zeno application.
 ///
@@ -13,15 +14,8 @@ class ZenoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Zeno',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: const Color(0xFF6366F1),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorSchemeSeed: const Color(0xFF6366F1),
-      ),
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
       home: const _BootstrapPlaceholder(),
     );
   }

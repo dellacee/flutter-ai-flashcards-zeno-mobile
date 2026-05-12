@@ -1,11 +1,12 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zeno/app.dart';
 import 'package:zeno/core/firebase/firebase_init.dart';
+import 'package:zeno/core/logger/app_logger.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  initLogger();
   try {
     await initFirebase();
     runApp(const ProviderScope(child: ZenoApp()));
