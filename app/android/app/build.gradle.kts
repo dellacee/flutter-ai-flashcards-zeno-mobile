@@ -2,7 +2,8 @@ plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
     id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics")
+    // Crashlytics gradle plugin removed: we keep the dart package for future
+    // use but defer the symbolication/native crash plumbing until release builds.
     // END: FlutterFire Configuration
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
