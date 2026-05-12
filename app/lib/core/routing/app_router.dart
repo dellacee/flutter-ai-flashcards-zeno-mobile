@@ -1,19 +1,48 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zeno/core/widgets/main_scaffold.dart';
+import 'package:zeno/features/auth/domain/auth_user.dart';
+import 'package:zeno/features/auth/presentation/providers/auth_providers.dart';
+import 'package:zeno/features/auth/presentation/sign_in_screen.dart';
 import 'package:zeno/features/home/presentation/home_screen.dart';
 import 'package:zeno/features/library/presentation/library_screen.dart';
 import 'package:zeno/features/review/presentation/review_screen.dart';
 
 /// Manual [Provider] exposing the app's [GoRouter] configuration.
 ///
-/// Auth redirect is intentionally absent — it will be wired in Task 2.5 once
-/// the auth-state provider exists.  Riverpod codegen is deferred to V1.1 per
-/// commit 263ff07.
+/// Auth redirect is driven by [_AuthRefreshNotifier], a small
+/// [ChangeNotifier] that calls [ChangeNotifier.notifyListeners]
+/// whenever [authStateChangesProvider] emits a new value. GoRouter
+/// re-runs the redirect callback on every notification, routing
+/// unauthenticated users to `/sign-in` and back to `/` once signed in.
+/// While the auth state is still loading the router stays put to avoid
+/// a splash flicker.
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final refreshNotifier = _AuthRefreshNotifier(ref);
+  ref.onDispose(refreshNotifier.dispose);
+
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: refreshNotifier,
+    redirect: (context, state) {
+      final authState = ref.read(authStateChangesProvider);
+      // While we don't know yet, stay on the requested page (splash visible).
+      if (authState.isLoading) return null;
+
+      final user = authState.valueOrNull;
+      final loggedIn = user != null;
+      final atSignIn = state.matchedLocation == '/sign-in';
+
+      if (!loggedIn && !atSignIn) return '/sign-in';
+      if (loggedIn && atSignIn) return '/';
+      return null;
+    },
     routes: [
+      GoRoute(
+        path: '/sign-in',
+        builder: (context, state) => const SignInScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             MainScaffold(navigationShell: navigationShell),
@@ -47,3 +76,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// A [ChangeNotifier] that mirrors [authStateChangesProvider] emissions.
+///
+/// GoRouter's refreshListenable calls the router's redirect whenever
+/// this notifier fires, so the auth guard always sees the latest
+/// [AuthUser?] value.
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier(this._ref) {
+    _sub = _ref.listen<AsyncValue<AuthUser?>>(
+      authStateChangesProvider,
+      (_, __) => notifyListeners(),
+      fireImmediately: false,
+    );
+  }
+
+  final Ref _ref;
+  late final ProviderSubscription<AsyncValue<AuthUser?>> _sub;
+
+  @override
+  void dispose() {
+    _sub.close();
+    super.dispose();
+  }
+}
