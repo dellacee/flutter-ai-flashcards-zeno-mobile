@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────
-# Zeno — Reset build state when plugin/Gradle cache is corrupt.
+# Zeno - Reset build state when plugin/Gradle cache is corrupt.
 # Usage: pwsh scripts/fix-build.ps1
 #
 # Use when you see:
@@ -99,4 +99,4 @@ Step "Uninstall app from emulator (if installed)" {
 
 Write-Host "`n=== Done ===" -ForegroundColor Green
 Write-Host "Next: cd app && flutter run"
-Write-Host "DO NOT run 'flutter clean' — it corrupts the plugin file. Use this script instead."
+Write-Host "DO NOT run 'flutter clean' - it corrupts the plugin file. Use this script instead."
