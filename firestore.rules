@@ -9,7 +9,11 @@ service cloud.firestore {
       allow read, write: if isOwner(uid);
 
       match /decks/{deckId} {
-        allow read, write: if isOwner(uid) && isValidDeck();
+        // Reads (get + list) chỉ cần là owner — `request.resource` null
+        // nên không gọi isValidDeck() được ở đây.
+        allow read, delete: if isOwner(uid);
+        // Writes (create + update) cần owner + validate title shape.
+        allow create, update: if isOwner(uid) && isValidDeck();
 
         match /cards/{cardId} {
           allow read, write: if isOwner(uid);
