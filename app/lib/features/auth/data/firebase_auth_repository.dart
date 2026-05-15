@@ -176,7 +176,9 @@ class FirebaseAuthRepository implements AuthRepository {
           },
           'stats': {
             'streak': 0,
+            'bestStreak': 0,
             'totalReviews': 0,
+            'lastReviewedDate': null,
           },
         });
       } else {

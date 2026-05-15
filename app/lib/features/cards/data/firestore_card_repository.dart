@@ -9,16 +9,20 @@ import 'package:zeno/features/review/domain/card_state.dart';
 import 'package:zeno/features/review/domain/fsrs_scheduler.dart';
 import 'package:zeno/features/review/domain/review_progress.dart';
 import 'package:zeno/features/review/domain/review_rating.dart';
+import 'package:zeno/features/user/data/user_stats_repository.dart';
 
 class FirestoreCardRepository implements CardRepository {
   FirestoreCardRepository({
     required FirebaseFirestore firestore,
     required fb.FirebaseAuth auth,
+    required UserStatsRepository statsRepository,
   })  : _firestore = firestore,
-        _auth = auth;
+        _auth = auth,
+        _statsRepository = statsRepository;
 
   final FirebaseFirestore _firestore;
   final fb.FirebaseAuth _auth;
+  final UserStatsRepository _statsRepository;
   final _log = appLog('cards.card_repository');
 
   CollectionReference<Map<String, dynamic>> _cardsCollection(String deckId) {
@@ -254,6 +258,13 @@ class FirestoreCardRepository implements CardRepository {
       }
 
       await batch.commit();
+
+      try {
+        await _statsRepository.applyReview(reviewedAt: reviewedAt);
+      } catch (e, st) {
+        _log.warning('stats update failed (non-fatal)', e, st);
+      }
+
       return updated;
     } on AppFailure {
       rethrow;

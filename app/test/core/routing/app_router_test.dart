@@ -11,13 +11,15 @@ import 'package:zeno/features/library/domain/deck.dart';
 import 'package:zeno/features/library/domain/deck_repository.dart';
 import 'package:zeno/features/library/presentation/providers/deck_providers.dart';
 import 'package:zeno/features/review/presentation/providers/review_providers.dart';
+import 'package:zeno/features/user/domain/user_stats.dart';
+import 'package:zeno/features/user/presentation/providers/user_stats_providers.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
 
 class _MockDeckRepository extends Mock implements DeckRepository {}
 
-/// A [ZenoApp] wrapper that stubs the auth and deck layers so the router
-/// sees a signed-in user with an empty deck list (no Firebase needed in tests).
+/// A [ZenoApp] wrapper that stubs the auth, deck, and stats layers so the
+/// router sees a signed-in user with an empty deck list (no Firebase needed).
 Widget _authedApp() {
   final authRepo = _MockAuthRepository();
   const user = AuthUser(uid: 'test', email: 'test@zeno.app');
@@ -25,14 +27,16 @@ Widget _authedApp() {
   when(() => authRepo.currentUser).thenReturn(user);
 
   final deckRepo = _MockDeckRepository();
-  when(deckRepo.watchDecks)
-      .thenAnswer((_) => Stream.value(<Deck>[]));
+  when(deckRepo.watchDecks).thenAnswer((_) => Stream.value(<Deck>[]));
 
   return ProviderScope(
     overrides: [
       authRepositoryProvider.overrideWithValue(authRepo),
       deckRepositoryProvider.overrideWithValue(deckRepo),
       dueCardsAllProvider.overrideWith((ref) async => <FlashCard>[]),
+      userStatsProvider.overrideWith(
+        (ref) => Stream.value(const UserStats()),
+      ),
     ],
     child: const ZenoApp(),
   );
@@ -43,8 +47,10 @@ void main() {
     await tester.pumpWidget(_authedApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Home'), findsWidgets); // app bar title
-    expect(find.text('Welcome to Zeno'), findsOneWidget);
+    // AppBar title and nav bar both show 'Home'
+    expect(find.text('Home'), findsWidgets);
+    // The streak card is visible (streak starts at 0)
+    expect(find.text('0'), findsWidgets);
   });
 
   testWidgets(
@@ -66,7 +72,13 @@ void main() {
       await tester.pumpWidget(_authedApp());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.psychology_outlined));
+      // Use the NavigationBar destination icon specifically
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.byIcon(Icons.psychology_outlined),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Không có card đến hạn'), findsOneWidget);

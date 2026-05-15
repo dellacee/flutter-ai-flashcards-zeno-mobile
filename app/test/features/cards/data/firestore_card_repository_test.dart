@@ -8,22 +8,33 @@ import 'package:zeno/features/cards/data/firestore_card_repository.dart';
 import 'package:zeno/features/cards/domain/card_repository.dart';
 import 'package:zeno/features/cards/domain/flash_card.dart';
 import 'package:zeno/features/review/domain/review_rating.dart';
+import 'package:zeno/features/user/data/user_stats_repository.dart';
+import 'package:zeno/features/user/domain/user_stats.dart';
 
 class _MockFirebaseAuth extends Mock implements fb.FirebaseAuth {}
 
 class _MockUser extends Mock implements fb.User {}
 
+class _MockUserStatsRepository extends Mock implements UserStatsRepository {}
+
 void main() {
   late FakeFirebaseFirestore firestore;
   late _MockFirebaseAuth auth;
+  late _MockUserStatsRepository mockStatsRepo;
   late FirestoreCardRepository repo;
 
   setUp(() async {
     firestore = FakeFirebaseFirestore();
     auth = _MockFirebaseAuth();
+    mockStatsRepo = _MockUserStatsRepository();
     final user = _MockUser();
     when(() => user.uid).thenReturn('u1');
     when(() => auth.currentUser).thenReturn(user);
+
+    // Default stub: applyReview succeeds
+    when(
+      () => mockStatsRepo.applyReview(reviewedAt: any(named: 'reviewedAt')),
+    ).thenAnswer((_) async => const UserStats(streak: 1, totalReviews: 1));
 
     // Pre-seed parent deck (cardCount starts at 0)
     await firestore
@@ -38,7 +49,11 @@ void main() {
       'updatedAt': Timestamp.now(),
     });
 
-    repo = FirestoreCardRepository(firestore: firestore, auth: auth);
+    repo = FirestoreCardRepository(
+      firestore: firestore,
+      auth: auth,
+      statsRepository: mockStatsRepo,
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -348,8 +363,11 @@ void main() {
           .collection('cards')
           .doc(card.id)
           .get();
-      expect(snap.data()!['progress'], isA<Map>());
-      expect((snap.data()!['progress'] as Map)['reps'], 1);
+      expect(snap.data()!['progress'], isA<Map<String, dynamic>>());
+      expect(
+        (snap.data()!['progress'] as Map<String, dynamic>)['reps'],
+        1,
+      );
 
       // Deck updatedAt bumped
       final after = await firestore
@@ -365,6 +383,26 @@ void main() {
         isTrue,
         reason: 'deck updatedAt must be bumped after submitReview',
       );
+    });
+
+    test('calls statsRepository.applyReview once after batch commits',
+        () async {
+      final card = await repo.createCard(
+        deckId: 'd1',
+        draft: const QaDraft(front: 'Q', back: 'A'),
+      );
+
+      final reviewedAt = DateTime.now();
+      await repo.submitReview(
+        deckId: 'd1',
+        cardId: card.id,
+        rating: ReviewRating.good,
+        reviewedAt: reviewedAt,
+      );
+
+      verify(
+        () => mockStatsRepo.applyReview(reviewedAt: reviewedAt),
+      ).called(1);
     });
 
     test('decrements dueCount when card transitions from due to not-due',
