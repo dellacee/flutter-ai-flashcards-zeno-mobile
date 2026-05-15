@@ -13,6 +13,7 @@ import 'package:zeno/features/library/presentation/deck_detail_screen.dart';
 import 'package:zeno/features/library/presentation/edit_deck_screen.dart';
 import 'package:zeno/features/library/presentation/library_screen.dart';
 import 'package:zeno/features/review/presentation/review_screen.dart';
+import 'package:zeno/features/settings/presentation/settings_screen.dart';
 
 /// Manual [Provider] exposing the app's [GoRouter] configuration.
 ///
@@ -48,6 +49,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/sign-in',
         builder: (context, state) => const SignInScreen(),
       ),
+      GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
       GoRoute(
         path: '/decks/new',
         builder: (context, state) => const CreateDeckScreen(),
