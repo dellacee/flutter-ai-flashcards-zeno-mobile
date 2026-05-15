@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zeno/core/widgets/main_scaffold.dart';
+import 'package:zeno/features/ai/presentation/generate_cards_screen.dart';
 import 'package:zeno/features/auth/domain/auth_user.dart';
 import 'package:zeno/features/auth/presentation/providers/auth_providers.dart';
 import 'package:zeno/features/auth/presentation/sign_in_screen.dart';
@@ -63,6 +64,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/decks/:id/edit',
         builder: (context, state) =>
             EditDeckScreen(deckId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/decks/:id/cards/generate',
+        builder: (context, state) =>
+            GenerateCardsScreen(deckId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/decks/:id/cards/new',

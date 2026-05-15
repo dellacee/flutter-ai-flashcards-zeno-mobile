@@ -181,16 +181,30 @@ class _DeckDetailBody extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // Cards section header
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Expanded(
-                child: Text('Cards', style: textTheme.titleSmall),
-              ),
-              FilledButton.tonalIcon(
-                onPressed: () =>
-                    context.push('/decks/${deck.id}/cards/new'),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Thêm card'),
+              Text('Cards', style: textTheme.titleSmall),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FilledButton.tonalIcon(
+                    onPressed: () =>
+                        context.push('/decks/${deck.id}/cards/generate'),
+                    icon: const Icon(Icons.auto_awesome, size: 18),
+                    label: const Text('Tạo bằng AI'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.tonalIcon(
+                    onPressed: () =>
+                        context.push('/decks/${deck.id}/cards/new'),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Thêm card'),
+                  ),
+                ],
               ),
             ],
           ),
