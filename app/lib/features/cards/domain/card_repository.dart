@@ -1,4 +1,5 @@
 import 'package:zeno/features/cards/domain/flash_card.dart';
+import 'package:zeno/features/review/domain/review_rating.dart';
 
 sealed class NewCardDraft {
   const NewCardDraft();
@@ -42,4 +43,14 @@ abstract class CardRepository {
   /// Atomically: delete the card, then decrement parent deck's
   /// cardCount via a batch write.
   Future<void> deleteCard({required String deckId, required String cardId});
+
+  /// Persist a review rating against [cardId] under [deckId].
+  /// Computes the next ReviewProgress via FsrsScheduler and writes it back
+  /// atomically with a bump of the deck's dueCount aggregate.
+  Future<FlashCard> submitReview({
+    required String deckId,
+    required String cardId,
+    required ReviewRating rating,
+    required DateTime reviewedAt,
+  });
 }

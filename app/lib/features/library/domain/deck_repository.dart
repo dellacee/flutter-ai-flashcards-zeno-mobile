@@ -22,4 +22,8 @@ abstract class DeckRepository {
   /// Permanently delete a deck (cards subcollection cleanup is handled by a
   /// future cloud function — out of scope for V1.0).
   Future<void> deleteDeck(String id);
+
+  /// Server-side recount of due cards for a deck (used to keep dueCount fresh).
+  /// Counts cards where state == newCard OR due <= now.
+  Future<int> recountDue({required String deckId, required DateTime asOf});
 }

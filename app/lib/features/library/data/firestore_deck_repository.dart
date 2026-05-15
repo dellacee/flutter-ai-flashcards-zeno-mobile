@@ -133,4 +133,55 @@ class FirestoreDeckRepository implements DeckRepository {
       throw AppFailure.unknown(message: 'Failed to delete deck $id', cause: e);
     }
   }
+
+  @override
+  Future<int> recountDue({
+    required String deckId,
+    required DateTime asOf,
+  }) async {
+    try {
+      final uid = _auth.currentUser?.uid;
+      if (uid == null) {
+        throw const AppFailure.auth(
+          code: 'no-current-user',
+          message: 'Bạn cần đăng nhập.',
+        );
+      }
+      final asOfTs = Timestamp.fromDate(asOf);
+      final cardsRef = _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('decks')
+          .doc(deckId)
+          .collection('cards');
+
+      final newCards = await cardsRef
+          .where('progress.state', isEqualTo: 'newCard')
+          .get();
+      final dueReview = await cardsRef
+          .where('progress.due', isLessThanOrEqualTo: asOfTs)
+          .get();
+
+      // Union by docId to avoid double-counting
+      final ids = <String>{
+        ...newCards.docs.map((d) => d.id),
+        ...dueReview.docs.map((d) => d.id),
+      };
+      final count = ids.length;
+
+      await _decksCollection.doc(deckId).update({'dueCount': count});
+      return count;
+    } on AppFailure {
+      rethrow;
+    } on FirebaseException catch (e, st) {
+      _log.warning('recountDue FirebaseException: ${e.code}', e, st);
+      throw AppFailure.unknown(message: e.message, cause: e);
+    } catch (e, st) {
+      _log.warning('recountDue error', e, st);
+      throw AppFailure.unknown(
+        message: 'Failed to recount due cards for deck $deckId',
+        cause: e,
+      );
+    }
+  }
 }

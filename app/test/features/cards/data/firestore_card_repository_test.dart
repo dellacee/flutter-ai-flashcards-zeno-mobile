@@ -7,6 +7,7 @@ import 'package:zeno/core/error/app_failure.dart';
 import 'package:zeno/features/cards/data/firestore_card_repository.dart';
 import 'package:zeno/features/cards/domain/card_repository.dart';
 import 'package:zeno/features/cards/domain/flash_card.dart';
+import 'package:zeno/features/review/domain/review_rating.dart';
 
 class _MockFirebaseAuth extends Mock implements fb.FirebaseAuth {}
 
@@ -306,7 +307,103 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // 9. Operations without a current user throw AppFailure.auth
+  // 9. submitReview — writes new progress and adjusts dueCount
+  // ---------------------------------------------------------------------------
+  group('submitReview', () {
+    test('writes new progress and bumps deck updatedAt', () async {
+      // Create a card first
+      final card = await repo.createCard(
+        deckId: 'd1',
+        draft: const QaDraft(front: 'Q', back: 'A'),
+      );
+
+      final before = await firestore
+          .collection('users')
+          .doc('u1')
+          .collection('decks')
+          .doc('d1')
+          .get();
+      final updatedAtBefore =
+          (before.data()!['updatedAt'] as Timestamp).toDate();
+
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      final updated = await repo.submitReview(
+        deckId: 'd1',
+        cardId: card.id,
+        rating: ReviewRating.good,
+        reviewedAt: DateTime.now(),
+      );
+
+      // Returned card should have reps = 1
+      expect(updated.progress.reps, 1);
+      expect(updated.progress.due, isNotNull);
+
+      // Persisted in Firestore
+      final snap = await firestore
+          .collection('users')
+          .doc('u1')
+          .collection('decks')
+          .doc('d1')
+          .collection('cards')
+          .doc(card.id)
+          .get();
+      expect(snap.data()!['progress'], isA<Map>());
+      expect((snap.data()!['progress'] as Map)['reps'], 1);
+
+      // Deck updatedAt bumped
+      final after = await firestore
+          .collection('users')
+          .doc('u1')
+          .collection('decks')
+          .doc('d1')
+          .get();
+      final updatedAtAfter =
+          (after.data()!['updatedAt'] as Timestamp).toDate();
+      expect(
+        updatedAtAfter.isAfter(updatedAtBefore),
+        isTrue,
+        reason: 'deck updatedAt must be bumped after submitReview',
+      );
+    });
+
+    test('decrements dueCount when card transitions from due to not-due',
+        () async {
+      // Seed deck with dueCount = 1
+      await firestore
+          .collection('users')
+          .doc('u1')
+          .collection('decks')
+          .doc('d1')
+          .update({'dueCount': 1});
+
+      // Create a new card (state == newCard, always due)
+      final card = await repo.createCard(
+        deckId: 'd1',
+        draft: const QaDraft(front: 'Q', back: 'A'),
+      );
+
+      // Submit Good — transitions to review state with a future due date
+      await repo.submitReview(
+        deckId: 'd1',
+        cardId: card.id,
+        rating: ReviewRating.good,
+        reviewedAt: DateTime.now(),
+      );
+
+      final deckSnap = await firestore
+          .collection('users')
+          .doc('u1')
+          .collection('decks')
+          .doc('d1')
+          .get();
+      // dueCount should have decremented from 1 to 0
+      expect(deckSnap.data()!['dueCount'], 0);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // 10. Operations without a current user throw AppFailure.auth
   // ---------------------------------------------------------------------------
   group('no current user', () {
     setUp(() {

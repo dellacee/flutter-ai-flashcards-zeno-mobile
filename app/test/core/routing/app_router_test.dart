@@ -6,9 +6,11 @@ import 'package:zeno/app.dart';
 import 'package:zeno/features/auth/domain/auth_repository.dart';
 import 'package:zeno/features/auth/domain/auth_user.dart';
 import 'package:zeno/features/auth/presentation/providers/auth_providers.dart';
+import 'package:zeno/features/cards/domain/flash_card.dart';
 import 'package:zeno/features/library/domain/deck.dart';
 import 'package:zeno/features/library/domain/deck_repository.dart';
 import 'package:zeno/features/library/presentation/providers/deck_providers.dart';
+import 'package:zeno/features/review/presentation/providers/review_providers.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
 
@@ -30,6 +32,7 @@ Widget _authedApp() {
     overrides: [
       authRepositoryProvider.overrideWithValue(authRepo),
       deckRepositoryProvider.overrideWithValue(deckRepo),
+      dueCardsAllProvider.overrideWith((ref) async => <FlashCard>[]),
     ],
     child: const ZenoApp(),
   );
@@ -66,7 +69,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.psychology_outlined));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nothing to review'), findsOneWidget);
+      expect(find.text('Không có card đến hạn'), findsOneWidget);
     },
   );
 }

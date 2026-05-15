@@ -5,6 +5,10 @@ import 'package:zeno/core/logger/app_logger.dart';
 import 'package:zeno/features/cards/data/card_dto.dart';
 import 'package:zeno/features/cards/domain/card_repository.dart';
 import 'package:zeno/features/cards/domain/flash_card.dart';
+import 'package:zeno/features/review/domain/card_state.dart';
+import 'package:zeno/features/review/domain/fsrs_scheduler.dart';
+import 'package:zeno/features/review/domain/review_progress.dart';
+import 'package:zeno/features/review/domain/review_rating.dart';
 
 class FirestoreCardRepository implements CardRepository {
   FirestoreCardRepository({
@@ -198,6 +202,68 @@ class FirestoreCardRepository implements CardRepository {
       _log.warning('deleteCard error', e, st);
       throw AppFailure.unknown(
         message: 'Failed to delete card $cardId',
+        cause: e,
+      );
+    }
+  }
+
+  /// Returns true if [p] is due at [t]: new cards are always due,
+  /// and reviewed cards are due when their due date is on or before [t].
+  bool _isDueAt(ReviewProgress p, DateTime t) {
+    if (p.state == CardState.newCard) return true;
+    if (p.due == null) return true;
+    return p.due!.isBefore(t) || p.due!.isAtSameMomentAs(t);
+  }
+
+  @override
+  Future<FlashCard> submitReview({
+    required String deckId,
+    required String cardId,
+    required ReviewRating rating,
+    required DateTime reviewedAt,
+  }) async {
+    try {
+      final card = await getCard(deckId: deckId, cardId: cardId);
+      final currentProgress = card.progress;
+
+      final next = const FsrsScheduler().schedule(
+        current: currentProgress,
+        rating: rating,
+        reviewedAt: reviewedAt,
+      );
+
+      final updated = card.copyWithProgress(next);
+
+      final cardRef = _cardsCollection(deckId).doc(cardId);
+      final deckRef = _deckDoc(deckId);
+
+      final wasDue = _isDueAt(currentProgress, reviewedAt);
+      final isNowDue = _isDueAt(next, reviewedAt);
+      final shouldDecrementDue = wasDue && !isNowDue;
+
+      final batch = _firestore.batch()
+        ..set(cardRef, CardDto.toFirestore(updated), SetOptions(merge: true));
+
+      if (shouldDecrementDue) {
+        batch.update(deckRef, {
+          'dueCount': FieldValue.increment(-1),
+          'updatedAt': Timestamp.now(),
+        });
+      } else {
+        batch.update(deckRef, {'updatedAt': Timestamp.now()});
+      }
+
+      await batch.commit();
+      return updated;
+    } on AppFailure {
+      rethrow;
+    } on FirebaseException catch (e, st) {
+      _log.warning('submitReview FirebaseException: ${e.code}', e, st);
+      throw AppFailure.unknown(message: e.message, cause: e);
+    } catch (e, st) {
+      _log.warning('submitReview error', e, st);
+      throw AppFailure.unknown(
+        message: 'Failed to submit review for card $cardId',
         cause: e,
       );
     }
